@@ -2,7 +2,7 @@
 A compilation of my solutions for EdSTEM problems in UTS Programming 1 (41039)
 ---
 ## How to look up
-On the first line of every solution file, there exists a comment to mark each source file / folder to the problem they correspond to:
+On the first line of every solution file, there exists a comment to mark each source file / folder to the problem they correspond to
 
 General syntax `Q{q}-W{w}-(-A)`
 - `Q{q}` - The question number (also increments on non-coding questions, meaning the counting might not start at 1 or be perfectly sequential)
