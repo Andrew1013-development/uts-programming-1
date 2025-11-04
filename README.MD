@@ -28,4 +28,17 @@ General syntax `Q{q}-W{w}-(-A)`
 - Week 5
     - Lab
     - Lab Assessment
+- Week 6
+    - Lab
+    - Lab Assessment
+- Week 7
+    - Lab
+    - Lab Assessment
+- Week 8
+    - Lab
+    - Lab Assessment
 - Project Euler Programming Puzzles
+
+## Potential additions
+- Problem statements
+- Editorials
