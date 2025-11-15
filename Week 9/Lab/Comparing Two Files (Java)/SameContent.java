@@ -6,8 +6,33 @@ import java.util.*;
 public class SameContent {
 
     public static boolean sameContent(String filename1, String filename2) {
-        //This is the method to complete.
-        return false;
+        String content1 = "", content2 = "";
+        BufferedReader br;
+
+        try {
+            br = new BufferedReader(new FileReader(filename1));
+            while (br.ready()) {
+                content1 += (br.readLine() + System.lineSeparator());
+            }
+            br.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            br = new BufferedReader(new FileReader(filename2));
+            while (br.ready()) {
+                content2 += (br.readLine() + System.lineSeparator());
+            }
+            br.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return content1.equals(content2);
     }
 
     public static void main(String[] args) {
