@@ -13,7 +13,7 @@ General syntax `Q{q}-W{w}(-A)(-E)`
     - `Q6-W5`: Question 6 of Week 5 Lab
     - `Q1-W1-A`: Question 1 of Week 1 Lab Assessment
     - `Q1-W9-E`: Question 1 of Week 9 Optional Extension
-    
+
 ## Tables of Content
 - Week 1
     - Lab
@@ -44,7 +44,12 @@ General syntax `Q{q}-W{w}(-A)(-E)`
     - Lab Assessment
     - Optional Extension Task
 - Project Euler Programming Puzzles
-- Code Comprehension Assignment (+ editorial if I have the time to write them)
+- Code Comprehension Assignment
+- Assignment Task 3
+    - J1 - Getting Carded
+    - J2 - Don't Hate the Player
+    - J3 - Don't Hate the Game Either
+    - P1 - Well, Maybe Hate Some of It
 
 ## Potential additions
 - Problem statements
