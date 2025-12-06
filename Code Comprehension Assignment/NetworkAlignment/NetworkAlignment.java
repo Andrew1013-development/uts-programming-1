@@ -1,140 +1,152 @@
 import graph.Graph;
-import graph.UndirectedGraph;
+import graph.UndirectedGraph; // implements the graph.Graph interface
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.ArrayList; // implements the java.utl.List interface
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.HashMap; // implements the java.util.Map interface
+import java.util.HashSet; // implements the java.util.Set interface
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.util.Random; // random operations
 import java.util.Set;
 
-import memeticOperators.Individual;
+import memeticOperators.Individual; // (see Individual.java)
 
 enum IndividualFitnessComparator implements Comparator<Individual<List<Integer>, Integer>> {
-
 	INSTANCE;
-
 	@Override
 	public int compare(Individual<List<Integer>, Integer> arg0, Individual<List<Integer>, Integer> arg1) {
-
 		return Integer.compare(arg1.getFitness(), arg0.getFitness());
-
 	}
 }
 
+/*
+    SECTION 1: CONTEXT & THE GENETIC METAPHOR
+    SECTION 1.1: INTRODUCTION
+    - The Problem: Network Alignment
+    - The Strategy: Memetic Algorithms
+    SECTION 1.2: TERMINOLOGY
+    Since memetic algorithms (and by extension genetic algorithms) originate from the field of bioinformatics, the variables are named after the closest resembling terms in bioinformatics terminology.
+    Below are 3 terms that comes up frequently during the reading of this codebase, as well as some of their "extensions":
+    - Population: a collection of Individuals (i.e. List<Individual>) -> Organism: a single Individual
+    - Chromosome: List<Integer> in this implementation -> Gene: A specific element within a chromosome (i.e. chromosome[i])
+    - Fitness: The "objective" score for an Individual
+*/
 public class NetworkAlignment {
-
-	public static void main(String[] args) {
-
+    // class point of invocation / entry point of execution
+    public static void main(String[] args) {
 		System.out.println("Launching network alignment memetic algorithm.");
-
 		long startTime = System.currentTimeMillis();
 
+        // initialization phase - prepare the requisite w
 		System.out.println("Initialising and loading data.");
-
 		NetworkAlignment na = new NetworkAlignment(args[0], args[1]);
 		long initialisationTime = System.currentTimeMillis();
 
+        // execution phase - executes the memetic algorithm with the prepared data
 		System.out.println("Beginning memetic algorithm.");
-
 		na.runMemeticAlgorithm(1000, 100, 100);
 		long endTime = System.currentTimeMillis();
 
+        // print out runtime information from the previous 2 phases
 		System.out.println("Time to initialise: " + (initialisationTime - startTime));
 		System.out.println("Time in memetic algorithm: " + (endTime - initialisationTime));
 		System.out.println("Total time: " + (endTime - startTime));
-
 	}
 
-	private List<Individual<List<Integer>, Integer>> population;
-	private Graph graphOne;
+    /*
+        SECTION 2: THE "BLUEPRINT"
+        SECTION 2.1: CLASS FIELDS
+    */
+    /*
+        All of these class fields have the access modifier "private", with some of them also having the "final" non-access modifier nearby.
+        These modifiers are presumably used in class fields declarations because:
+        - The "private" modifier ensures no external modifications (i.e. direct modifications) is allowed outside of methods
+        => no unintended consequences for unintentionally modifying the class fields during code execution
+        - The "final" modifier denotes (as the name suggests) a "final" variable, limiting or outright forbidding changes after assignment
+        => Increase code comprehensibility to other developers, denoting such a variable is constant after assignment
+    */
+
+    private List<Individual<List<Integer>, Integer>> population;
+
+    private Graph graphOne;
 	private Graph graphTwo;
 
+    // Vertex lists for Graph 1 and Graph 2
 	private final List<String> graphOneVertices;
 	private final List<String> graphTwoVertices;
-
-	private final Map<String, Integer> graphOneVertexIndices;
+    // Integer mapping alternative -> provides a faster way to look up and access
+    private final Map<String, Integer> graphOneVertexIndices;
 	private final Map<String, Integer> graphTwoVertexIndices;
 
+    // Adjacency lists for Graph 1 and Graph 2
 	private Map<String, Set<String>> graphOneAdjacencies;
 	private Map<String, Set<String>> graphTwoAdjacencies;
-
+    // Integer mapping alternative -> provides a faster way to look up and access
 	private List<Set<Integer>> graphOneIndexAdjacencies;
 	private List<Set<Integer>> graphTwoIndexAdjacencies;
 
+    // Random object -> random functions
 	private final Random random;
 
+    // constants for upper bound / fitness score calculation
 	private final int EDGEVALUE = 1;
 	private final int VERTEXVALUE = 0;
 
+    // relevant parameters for Memetic Algorithm
 	private final int upperbound;
-
 	private final int individualSize;
 
+    /*
+        SECTION 2.2: CLASS CONSTRUCTOR
+    */
 	public NetworkAlignment(String graphOneFilename, String graphTwoFilename) {
-
 		this.random = new Random();
-
 		this.graphOne = new UndirectedGraph();
 		this.graphTwo = new UndirectedGraph();
 
 		try {
 			BufferedReader reader = new BufferedReader(new FileReader(new File(graphOneFilename)));
-
 			String graphString = "";
-
 			while (reader.ready()) {
 				graphString += reader.readLine();
 			}
-
 			this.graphOne = this.graphOne.edgeListToGraph(graphString);
-
 			reader.close();
 
 			reader = new BufferedReader(new FileReader(new File(graphTwoFilename)));
-
 			graphString = "";
-
 			while (reader.ready()) {
 				graphString += reader.readLine();
 			}
-
 			this.graphTwo = this.graphTwo.edgeListToGraph(graphString);
-
 			reader.close();
-
 		} catch (FileNotFoundException e) {
-
+            // error handling: one of the input files is missing
 			System.err.println("File not found: " + e.getMessage());
-
 		} catch (IOException e) {
-
-			System.err.println("Error reading file: " + e.getMessage());
-
+            // error handling: I/O error
+            System.err.println("Error reading file: " + e.getMessage());
 		}
 
-		int i = 0;
-
+        // Make Graph 1 and Graph 2 correspond one-to-one (every vertex in Graph 1 has a valid and unique mapping to a vertex in Graph 2)
+		// Case 1: Graph 1 < Graph 2 -> Add dummy vertices to Graph 1
+        int i = 0;
 		while (this.graphOne.numVertices() < this.graphTwo.numVertices()) {
-
+            // add "dummyVertex1", "dummyVertex2", "dummyVertex3"
 			this.graphOne.addVertex("dummyVertex" + i++);
-
 		}
-
+        // Case 2: Graph 1 > Graph 2 -> Add dummy vertices to Graph 2
 		i = 0;
-
 		while (this.graphTwo.numVertices() < this.graphOne.numVertices()) {
-
+            // Meaning: add "dummyVertex1", "dummyVertex2", "dummyVertex3"
 			this.graphTwo.addVertex("dummyVertex" + i++);
-
 		}
 
 		this.graphOneVertices = this.graphOne.vertices();
@@ -143,6 +155,7 @@ public class NetworkAlignment {
 		this.graphOneVertexIndices = new HashMap<String, Integer>();
 		this.graphTwoVertexIndices = new HashMap<String, Integer>();
 
+        // Map an integer value to each vertex's name in Graph 1 and Graph 2
 		for (int j = 0; j < graphOneVertices.size(); j++) {
 			this.graphOneVertexIndices.put(this.graphOneVertices.get(j), j);
 			this.graphTwoVertexIndices.put(this.graphTwoVertices.get(j), j);
@@ -154,13 +167,16 @@ public class NetworkAlignment {
 		this.graphOneIndexAdjacencies = new ArrayList<Set<Integer>>();
 		this.graphTwoIndexAdjacencies = new ArrayList<Set<Integer>>();
 
+        // Add all adjacent nodes of each node in Graph 1
 		for (String v : this.graphOneVertices) {
 
 			Set<String> vNeighbours = new HashSet<String>();
+            // Add all immediate neighbors (parent + children) as a set
 			vNeighbours.addAll(this.graphOne.neighbours(v));
 			this.graphOneAdjacencies.put(v, vNeighbours);
 
 			Set<Integer> vIndexNeighbours = new HashSet<Integer>();
+            // Functionally does the same as the above snippet, but on integer values instead
 			for (String u : vNeighbours) {
 				vIndexNeighbours.add(this.graphOneVertexIndices.get(u));
 			}
@@ -168,6 +184,7 @@ public class NetworkAlignment {
 
 		}
 
+        // Add all adjacent nodes for each node in Graph 2 (the same implementation as seen for Graph 1)
 		for (String v : this.graphTwoVertices) {
 
 			Set<String> vNeighbours = new HashSet<String>();
@@ -182,16 +199,15 @@ public class NetworkAlignment {
 
 		}
 
-		this.upperbound = this.graphOne.numVertices() * this.VERTEXVALUE
-				+ Math.min(this.graphOne.numEdges(), this.graphTwo.numEdges()) * this.EDGEVALUE;
+        // Compute upper bound value -> optimization / objective metric
+		this.upperbound = this.graphOne.numVertices() * this.VERTEXVALUE + Math.min(this.graphOne.numEdges(), this.graphTwo.numEdges()) * this.EDGEVALUE;
 
 		this.individualSize = this.graphOneVertices.size();
-		
+
 		System.out.println("Graph 1: " + graphOne);
 		System.out.println("Graph 2: " + graphTwo);
 
 		System.out.println("Upper bound: " + this.upperbound);
-
 	}
 
 	private List<Integer> alignNeighbourhoods(int i, int j, List<Integer> individual) {
@@ -199,7 +215,6 @@ public class NetworkAlignment {
 		List<Integer> chromosome = new ArrayList<Integer>(individual);
 
 		List<Integer> neighboursOfI = new ArrayList<Integer>();
-
 		for (String v : graphOne.neighbours(graphOneVertices.get(i))) {
 
 			neighboursOfI.add(graphOneVertices.indexOf(v));
@@ -214,6 +229,7 @@ public class NetworkAlignment {
 
 		}
 
+        //
 		neighboursOfI.remove(j);
 		indexOfNeighboursOfThingAtJ.remove(i);
 
@@ -244,7 +260,10 @@ public class NetworkAlignment {
 
 		return chromosome;
 	}
-
+    /*
+        ANALYSIS PART 2: UTILITY HELPER
+        Purpose: replicate the current list into another object to avoid modifying the original
+    */
 	private Individual<List<Integer>, Integer> copyIndividual(Individual<List<Integer>, Integer> individual) {
 
 		List<Integer> newList = new ArrayList<Integer>();
@@ -488,7 +507,11 @@ public class NetworkAlignment {
 		}
 
 	}
-
+    /*
+        ANALYSIS PART 6: POPULATION INITIALIZATION
+        Purpose:
+        Design Considerations:
+    */
 	private void initialisePopulation(int populationSize) {
 
 		this.population = new ArrayList<Individual<List<Integer>, Integer>>();
@@ -516,7 +539,14 @@ public class NetworkAlignment {
 		}
 
 	}
-
+    /*
+        ANALYSIS PART 7: MUTATION OPERATORS
+    */
+    /*
+        Function 1: mutate(individual)
+        Purpose:
+        Design Considerations:
+    */
 	private void mutate(Individual<List<Integer>, Integer> individual) {
 
 		int i = this.random.nextInt(individual.getIndividual().size());
@@ -531,7 +561,11 @@ public class NetworkAlignment {
 		individual.setIndividualAndFitness(chromosome, this.fitness(chromosome));
 
 	}
-
+    /*
+        Function 2: shuffleMutate(individual, swapProb)
+        Purpose:
+        Design Considerations:
+    */
 	private void shuffleMutate(Individual<List<Integer>, Integer> individual, float swapProb) {
 
 		List<Integer> newList = new ArrayList<Integer>(individual.getIndividual());
@@ -556,9 +590,14 @@ public class NetworkAlignment {
 		individual.setIndividualAndFitness(newList, this.fitness(newList));
 
 	}
-
+    /*
+        ANALYSIS PART 8: THE SKELETON
+        Purpose:
+        Design Considerations:
+    */
 	public void runMemeticAlgorithm(int numRounds, int populationSize, int improvementFrequency) {
 
+        // create a Generation 0 population for the initial phase
 		this.initialisePopulation(populationSize);
 
 		for (Individual<List<Integer>, Integer> individual : this.population) {
@@ -670,15 +709,19 @@ public class NetworkAlignment {
 		System.out.println("Fitness value: " + best.getFitness());
 
 	}
-
+    /*
+        ANALYSIS PART 9: LOCAL SEARCH + STRONG HEURISTIC
+        Purpose:
+        Design Considerations:
+    */
 	private void strongImprove(Individual<List<Integer>, Integer> individual) {
 
 		boolean improving = true;
 
 		while (improving) {
-			
+
 			improving = false;
-			
+
 			List<Integer> bestSwap = individual.getIndividual();
 			int bestSwapFitness = individual.getFitness();
 
@@ -722,3 +765,10 @@ public class NetworkAlignment {
 	}
 
 }
+/*
+    SECTION 3: REFERENCES
+    What are Genetic Algorithms? | argonaut (YouTube)
+    https://www.youtube.com/watch?v=XP2sFzp2Rig
+    The Knapsack Problem & Genetic Algorithms - Computerphile | Computerphile (YouTube)
+    https://www.youtube.com/watch?v=MacVqujSXWE
+*/
